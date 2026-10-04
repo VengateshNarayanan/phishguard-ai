@@ -1,460 +1,518 @@
-/**
- * PhishGuard AI - Frontend Controller (Phase 2 MCP Enhanced)
- * Handles user interactions, preset loading, API calls, and threat result rendering,
- * including Model Context Protocol (MCP) tool evidence and investigation steps.
- */
+```javascript
+const API_BASE = "";
 
-// Determine the API base URL. If hosted by FastAPI under /app, use origin; otherwise default to local FastAPI port 8000.
-const API_BASE_URL = window.location.origin.includes(":8000") 
-  ? window.location.origin 
-  : "http://127.0.0.1:8000";
-
-// Preset test scenarios for fast, 1-click evaluation
-const PRESETS = {
-  safe: {
-    sender: "sarah.jenkins@acme-corp.internal",
-    subject: "Quarterly Planning Deck Review & Sync",
-    message: "Hi team,\n\nPlease find time to review the Q3 strategic roadmap slides before our all-hands sync this Thursday at 2:00 PM. Feel free to leave comments directly on our internal knowledge base.\n\nBest regards,\nSarah Jenkins\nDirector of Operations"
-  },
-  suspicious: {
-    sender: "dispatch-notice@global-express-delivery.net",
-    subject: "Action Required: Undelivered Package #US-99210",
-    message: "Your delivery could not be completed today due to an incomplete delivery address on file.\n\nPlease confirm your address and update your delivery preferences within 48 hours to avoid return to sender: https://global-express-dispatch-review.net/track?id=99210\n\nThank you,\nCustomer Dispatch Support"
-  },
-  phishing: {
-    sender: "security-alert@paypal-account-security-center.com",
-    subject: "URGENT: Unauthorized Login Detected - Account Suspended",
-    message: "Dear Customer,\n\nWe detected suspicious login attempts on your PayPal account from an unrecognized IP address in Moscow, Russia. For your protection, your account has been temporarily locked.\n\nClick here immediately to verify your identity and restore access: http://192.168.1.150:8080/paypal-security/login\n\nIf you do not verify your credentials within 24 hours, your account and linked funds will be permanently disabled."
-  },
-  scam: {
-    sender: "barrister.kofi@international-trust-fund.org",
-    subject: "OFFICIAL NOTICE: Unclaimed Award of $4,500,000 USD",
-    message: "Attention Beneficiary,\n\nI am Barrister Kofi Mensah, legal representative for an unclaimed inheritance fund amounting to $4,500,000 USD. You have been selected as the sole authorized recipient.\n\nTo initiate the release of these funds, kindly remit an administrative fee of $450 USD via Bitcoin or Western Union transfer to cover bank notarization.\n\nSend your full name, passport copy, and transaction receipt to begin."
-  },
-  headers: {
-    sender: "PayPal Security <alert@paypal-account-center.com>",
-    subject: "Immediate Action: Account Security Flag #8841",
-    message: "From: PayPal Security <alert@paypal-account-center.com>\nReply-To: attacker@unverified-inbox.ru\nReturn-Path: <bounce@unverified-inbox.ru>\nAuthentication-Results: mx.google.com; spf=fail smtp.mailfrom=paypal-account-center.com; dkim=fail; dmarc=fail action=quarantine\nReceived: from untrusted-relay.ru (untrusted-relay.ru [185.220.101.5])\n\nDear Customer,\n\nYour account has been flagged for immediate identity re-verification. Reply immediately with your account PIN to restore access."
-  }
+const elements = {
+    form: document.getElementById("analyzeForm"),
+    sender: document.getElementById("sender"),
+    subject: document.getElementById("subject"),
+    message: document.getElementById("message"),
+    charCount: document.getElementById("charCount"),
+    analyzeButton: document.getElementById("analyzeButton"),
+    resetButton: document.getElementById("resetButton"),
+    results: document.getElementById("results"),
+    errorContainer: document.getElementById("errorContainer"),
+    backendStatus: document.getElementById("backendStatus"),
+    mcpStatus: document.getElementById("mcpStatus"),
+    riskScore: document.getElementById("riskScore"),
+    riskFill: document.getElementById("riskFill"),
+    classification: document.getElementById("classification"),
+    severity: document.getElementById("severity"),
+    summary: document.getElementById("summary"),
+    indicators: document.getElementById("indicators"),
+    reasons: document.getElementById("reasons"),
+    recommendedAction: document.getElementById("recommendedAction"),
+    analysisSteps: document.getElementById("analysisSteps"),
+    toolEvidence: document.getElementById("toolEvidence")
 };
 
-// DOM Elements
-const apiStatusBadge = document.getElementById("api-status-badge");
-const statusDot = document.getElementById("status-dot");
-const statusText = document.getElementById("status-text");
+const escapeHTML = (value) => {
+    const div = document.createElement("div");
+    div.textContent = String(value ?? "");
+    return div.innerHTML;
+};
 
-const mcpStatusBadge = document.getElementById("mcp-status-badge");
-const mcpStatusDot = document.getElementById("mcp-status-dot");
-const mcpStatusText = document.getElementById("mcp-status-text");
+function showError(message) {
+    if (!elements.errorContainer) return;
 
-const alertBanner = document.getElementById("alert-banner");
-const alertIcon = document.getElementById("alert-icon");
-const alertMessage = document.getElementById("alert-message");
-const alertCloseBtn = document.getElementById("alert-close-btn");
-
-const senderInput = document.getElementById("sender-input");
-const subjectInput = document.getElementById("subject-input");
-const messageInput = document.getElementById("message-input");
-const charCounter = document.getElementById("char-counter");
-const clearBtn = document.getElementById("clear-btn");
-
-const analyzeForm = document.getElementById("analyze-form");
-const submitBtn = document.getElementById("submit-btn");
-const submitSpinner = document.getElementById("submit-spinner");
-const submitIcon = document.getElementById("submit-icon");
-const submitLabel = document.getElementById("submit-label");
-
-const resultsIdle = document.getElementById("results-idle");
-const resultsContent = document.getElementById("results-content");
-const resultScore = document.getElementById("result-score");
-const scoreCircle = document.getElementById("score-circle");
-const resultClassification = document.getElementById("result-classification");
-const resultSeverity = document.getElementById("result-severity");
-const resultSummary = document.getElementById("result-summary");
-const resultIndicators = document.getElementById("result-indicators");
-const resultReasons = document.getElementById("result-reasons");
-const resultAction = document.getElementById("result-action");
-
-const investigationStepsList = document.getElementById("investigation-steps-list");
-const toolEvidenceGrid = document.getElementById("tool-evidence-grid");
-
-/**
- * Escapes untrusted text to prevent XSS.
- */
-function escapeHTML(str) {
-  if (!str) return "";
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+    elements.errorContainer.textContent = message;
+    elements.errorContainer.classList.add("visible");
 }
 
-/**
- * Displays an alert notification banner.
- */
-function showAlert(message, type = "error") {
-  alertMessage.textContent = message;
-  alertBanner.className = `alert-banner ${type}`;
-  alertIcon.textContent = type === "error" ? "⚠️" : "ℹ️";
-  alertBanner.classList.remove("hidden");
+function hideError() {
+    if (!elements.errorContainer) return;
+
+    elements.errorContainer.textContent = "";
+    elements.errorContainer.classList.remove("visible");
 }
 
-/**
- * Hides the alert banner.
- */
-function hideAlert() {
-  alertBanner.classList.add("hidden");
-}
+function setLoading(isLoading) {
+    if (!elements.analyzeButton) return;
 
-/**
- * Updates the backend and MCP health status badges.
- */
-async function checkSystemHealth() {
-  // 1. Check FastAPI Backend Health
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const response = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    elements.analyzeButton.disabled = isLoading;
 
-    if (response.ok) {
-      statusDot.className = "status-dot online";
-      statusText.textContent = "API: Online";
+    if (isLoading) {
+        elements.analyzeButton.dataset.originalText =
+            elements.analyzeButton.textContent;
+        elements.analyzeButton.textContent = "Analyzing...";
     } else {
-      throw new Error(`HTTP ${response.status}`);
+        elements.analyzeButton.textContent =
+            elements.analyzeButton.dataset.originalText || "Analyze Message";
     }
-  } catch (err) {
-    statusDot.className = "status-dot offline";
-    statusText.textContent = "API: Offline";
-    showAlert(
-      `Cannot connect to backend at ${API_BASE_URL}. Ensure uvicorn is running: uvicorn main:app --reload`,
-      "error"
+}
+
+function updateCharacterCount() {
+    if (!elements.message || !elements.charCount) return;
+
+    elements.charCount.textContent = elements.message.value.length;
+}
+
+function updateBackendStatus(online) {
+    if (!elements.backendStatus) return;
+
+    if (online) {
+        elements.backendStatus.textContent = "BACKEND: ONLINE";
+        elements.backendStatus.classList.remove("offline");
+        elements.backendStatus.classList.add("online");
+    } else {
+        elements.backendStatus.textContent = "BACKEND: OFFLINE";
+        elements.backendStatus.classList.remove("online");
+        elements.backendStatus.classList.add("offline");
+    }
+}
+
+function updateMCPStatus(status) {
+    if (!elements.mcpStatus) return;
+
+    const normalized = String(status || "").toLowerCase();
+
+    if (
+        normalized.includes("connected") ||
+        normalized.includes("available") ||
+        normalized.includes("local")
+    ) {
+        elements.mcpStatus.textContent = "MCP: CONNECTED";
+        elements.mcpStatus.classList.remove("offline");
+        elements.mcpStatus.classList.add("online");
+    } else {
+        elements.mcpStatus.textContent = "MCP: UNAVAILABLE";
+        elements.mcpStatus.classList.remove("online");
+        elements.mcpStatus.classList.add("offline");
+    }
+}
+
+async function checkBackendHealth() {
+    try {
+        const response = await fetch(`${API_BASE}/health`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Health check failed: HTTP ${response.status}`);
+        }
+
+        updateBackendStatus(true);
+        return true;
+    } catch (error) {
+        console.error("Backend health check failed:", error);
+        updateBackendStatus(false);
+        return false;
+    }
+}
+
+async function checkMCPStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/mcp/status`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`MCP status failed: HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        updateMCPStatus(data.status);
+
+        return data;
+    } catch (error) {
+        console.error("MCP status check failed:", error);
+        updateMCPStatus("unavailable");
+        return null;
+    }
+}
+
+function renderRiskScore(score) {
+    const numericScore = Math.max(
+        0,
+        Math.min(100, Number(score) || 0)
     );
-  }
 
-  // 2. Check MCP Server Readiness
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const response = await fetch(`${API_BASE_URL}/mcp/status`, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      mcpStatusDot.className = "status-dot online";
-      mcpStatusText.textContent = "MCP: Connected (3 Tools)";
-    } else {
-      mcpStatusDot.className = "status-dot offline";
-      mcpStatusText.textContent = "MCP: Unavailable";
+    if (elements.riskScore) {
+        elements.riskScore.textContent = numericScore;
     }
-  } catch (err) {
-    mcpStatusDot.className = "status-dot offline";
-    mcpStatusText.textContent = "MCP: Offline";
-  }
+
+    if (elements.riskFill) {
+        elements.riskFill.style.width = `${numericScore}%`;
+    }
 }
 
-/**
- * Updates textarea character counter.
- */
-function updateCharCount() {
-  const count = messageInput.value.length;
-  charCounter.textContent = `${count.toLocaleString()} character${count === 1 ? '' : 's'}`;
+function renderClassification(value) {
+    if (!elements.classification) return;
+
+    const classification = String(value || "UNKNOWN").toUpperCase();
+
+    elements.classification.textContent = classification;
+    elements.classification.className = "classification-badge";
+
+    elements.classification.classList.add(
+        classification.toLowerCase()
+    );
 }
 
-/**
- * Loads a selected preset example into the form.
- */
-function loadPreset(key) {
-  const preset = PRESETS[key];
-  if (!preset) return;
+function renderSeverity(value) {
+    if (!elements.severity) return;
 
-  senderInput.value = preset.sender;
-  subjectInput.value = preset.subject;
-  messageInput.value = preset.message;
-  updateCharCount();
-  hideAlert();
+    const severity = String(value || "UNKNOWN").toUpperCase();
+
+    elements.severity.textContent = severity;
+    elements.severity.className = "severity-badge";
+
+    elements.severity.classList.add(
+        severity.toLowerCase()
+    );
 }
 
-/**
- * Clears the input form and resets results state.
- */
-function resetForm() {
-  senderInput.value = "";
-  subjectInput.value = "";
-  messageInput.value = "";
-  updateCharCount();
-  hideAlert();
-  resultsContent.classList.add("hidden");
-  resultsIdle.classList.remove("hidden");
+function renderList(container, items, emptyMessage = "None detected.") {
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!Array.isArray(items) || items.length === 0) {
+        const item = document.createElement("li");
+        item.textContent = emptyMessage;
+        container.appendChild(item);
+        return;
+    }
+
+    items.forEach((itemValue) => {
+        const item = document.createElement("li");
+        item.textContent = String(itemValue);
+        container.appendChild(item);
+    });
 }
 
-/**
- * Renders structured tool evidence into cards.
- */
+function renderIndicators(indicators) {
+    if (!elements.indicators) return;
+
+    elements.indicators.innerHTML = "";
+
+    if (!Array.isArray(indicators) || indicators.length === 0) {
+        const span = document.createElement("span");
+        span.textContent = "No major threat indicators detected.";
+        elements.indicators.appendChild(span);
+        return;
+    }
+
+    indicators.forEach((indicator) => {
+        const tag = document.createElement("span");
+        tag.className = "indicator-tag";
+        tag.textContent = String(indicator);
+        elements.indicators.appendChild(tag);
+    });
+}
+
 function renderToolEvidence(toolEvidence) {
-  toolEvidenceGrid.innerHTML = "";
+    if (!elements.toolEvidence) return;
 
-  if (!toolEvidence || toolEvidence.length === 0) {
-    const emptyNotice = document.createElement("div");
-    emptyNotice.className = "tool-card";
-    emptyNotice.innerHTML = `
-      <div class="tool-card-header">
-        <span class="tool-name-badge">No External Tools Required</span>
-        <span class="tool-risk-tag low">CLEAN</span>
-      </div>
-      <p style="font-size: 0.8rem; color: #9ca3af;">
-        The Security Agent determined that no candidate URLs, unverified external domains, or RFC 822 email headers required tool investigation.
-      </p>
-    `;
-    toolEvidenceGrid.appendChild(emptyNotice);
-    return;
-  }
+    elements.toolEvidence.innerHTML = "";
 
-  toolEvidence.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "tool-card";
-
-    const toolName = item.tool || "unknown_tool";
-    const result = item.result || {};
-    const riskLevel = (result.risk_level || item.status || "INFO").toLowerCase();
-
-    let toolDisplayName = "MCP Tool";
-    if (toolName === "analyze_url") toolDisplayName = "✓ URL Static Analyzer";
-    else if (toolName === "analyze_domain") toolDisplayName = "✓ Domain Reputation Analyzer";
-    else if (toolName === "analyze_email_headers") toolDisplayName = "✓ Email Header Spoofing Inspector";
-
-    let targetHTML = "";
-    if (item.target) {
-      targetHTML = `<div class="tool-target-text">Target: ${escapeHTML(item.target)}</div>`;
+    if (!Array.isArray(toolEvidence) || toolEvidence.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "tool-evidence-empty";
+        empty.textContent = "No additional MCP tools were required.";
+        elements.toolEvidence.appendChild(empty);
+        return;
     }
 
-    let signalsHTML = "";
-    const signals = result.signals || [];
-    if (signals.length > 0) {
-      signalsHTML = `<ul class="tool-signals-list">${signals.map(s => `<li>${escapeHTML(s)}</li>`).join("")}</ul>`;
-    } else if (item.status === "unavailable") {
-      signalsHTML = `<ul class="tool-signals-list"><li style="color: #fca5a5;">Tool execution was unavailable: ${escapeHTML(item.error || 'Timeout')}</li></ul>`;
+    toolEvidence.forEach((evidence) => {
+        const card = document.createElement("div");
+        card.className = "tool-evidence-card";
+
+        const title = document.createElement("h4");
+        title.textContent =
+            evidence.tool ||
+            evidence.name ||
+            "Security Tool";
+
+        const risk = document.createElement("div");
+        risk.className = "tool-risk";
+
+        risk.textContent =
+            evidence.risk_level ||
+            evidence.risk ||
+            "ANALYZED";
+
+        card.appendChild(title);
+        card.appendChild(risk);
+
+        if (Array.isArray(evidence.signals)) {
+            const signalList = document.createElement("ul");
+
+            evidence.signals.forEach((signal) => {
+                const li = document.createElement("li");
+                li.textContent = String(signal);
+                signalList.appendChild(li);
+            });
+
+            card.appendChild(signalList);
+        }
+
+        elements.toolEvidence.appendChild(card);
+    });
+}
+
+function renderAnalysisSteps(steps) {
+    if (!elements.analysisSteps) return;
+
+    elements.analysisSteps.innerHTML = "";
+
+    if (!Array.isArray(steps) || steps.length === 0) {
+        const item = document.createElement("div");
+        item.className = "analysis-step";
+        item.textContent = "Analysis completed.";
+        elements.analysisSteps.appendChild(item);
+        return;
     }
 
-    card.innerHTML = `
-      <div class="tool-card-header">
-        <span class="tool-name-badge">${escapeHTML(toolDisplayName)}</span>
-        <span class="tool-risk-tag ${riskLevel}">${escapeHTML(riskLevel.toUpperCase())}</span>
-      </div>
-      ${targetHTML}
-      ${signalsHTML}
-    `;
+    steps.forEach((step, index) => {
+        const item = document.createElement("div");
+        item.className = "analysis-step";
 
-    toolEvidenceGrid.appendChild(card);
-  });
+        const number = document.createElement("span");
+        number.className = "step-number";
+        number.textContent = index + 1;
+
+        const text = document.createElement("span");
+        text.textContent = String(step);
+
+        item.appendChild(number);
+        item.appendChild(text);
+
+        elements.analysisSteps.appendChild(item);
+    });
 }
 
-/**
- * Renders high-level agent investigation timeline steps.
- */
-function renderInvestigationSteps(steps) {
-  investigationStepsList.innerHTML = "";
-  if (!steps || steps.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "Direct threat triage completed";
-    investigationStepsList.appendChild(li);
-    return;
-  }
-
-  steps.forEach(step => {
-    const li = document.createElement("li");
-    li.textContent = step;
-    investigationStepsList.appendChild(li);
-  });
-}
-
-/**
- * Updates the visual styling of the results display based on classification and score.
- */
 function renderResults(data) {
-  // Update Score
-  const score = data.risk_score;
-  resultScore.textContent = score;
+    renderRiskScore(data.risk_score);
+    renderClassification(data.classification);
+    renderSeverity(data.severity);
 
-  // Determine score color
-  let scoreColor = "#10b981"; // Safe
-  if (score > 85) {
-    scoreColor = "#e11d48"; // Scam / Critical
-  } else if (score > 55) {
-    scoreColor = "#ef4444"; // Phishing
-  } else if (score > 25) {
-    scoreColor = "#f59e0b"; // Suspicious
-  }
-  scoreCircle.style.borderColor = scoreColor;
-
-  // Update Classification Badge
-  const classification = data.classification.toUpperCase();
-  resultClassification.textContent = classification;
-  resultClassification.className = "classification-badge";
-
-  switch (classification) {
-    case "SAFE":
-      resultClassification.classList.add("state-safe");
-      break;
-    case "SUSPICIOUS":
-      resultClassification.classList.add("state-suspicious");
-      break;
-    case "PHISHING":
-      resultClassification.classList.add("state-phishing");
-      break;
-    case "SCAM":
-      resultClassification.classList.add("state-scam");
-      break;
-    default:
-      resultClassification.classList.add("state-suspicious");
-  }
-
-  // Update Severity Pill
-  const severity = data.severity.toUpperCase();
-  resultSeverity.textContent = severity;
-  resultSeverity.className = "severity-pill";
-  switch (severity) {
-    case "LOW":
-      resultSeverity.classList.add("severity-low");
-      break;
-    case "MEDIUM":
-      resultSeverity.classList.add("severity-medium");
-      break;
-    case "HIGH":
-      resultSeverity.classList.add("severity-high");
-      break;
-    case "CRITICAL":
-      resultSeverity.classList.add("severity-critical");
-      break;
-  }
-
-  // Update Summary
-  resultSummary.textContent = data.summary;
-
-  // Phase 2: Render Investigation Steps and Tool Evidence
-  renderInvestigationSteps(data.analysis_steps);
-  renderToolEvidence(data.tool_evidence);
-
-  // Update Indicators
-  resultIndicators.innerHTML = "";
-  if (data.indicators && data.indicators.length > 0) {
-    data.indicators.forEach(indicator => {
-      const tag = document.createElement("span");
-      tag.className = "indicator-tag";
-      tag.textContent = indicator;
-      resultIndicators.appendChild(tag);
-    });
-  } else {
-    const tag = document.createElement("span");
-    tag.className = "indicator-tag";
-    tag.textContent = "None Detected";
-    resultIndicators.appendChild(tag);
-  }
-
-  // Update Reasons
-  resultReasons.innerHTML = "";
-  if (data.reasons && data.reasons.length > 0) {
-    data.reasons.forEach(reason => {
-      const li = document.createElement("li");
-      li.textContent = reason;
-      resultReasons.appendChild(li);
-    });
-  } else {
-    const li = document.createElement("li");
-    li.textContent = "No specific anomaly detected.";
-    resultReasons.appendChild(li);
-  }
-
-  // Update Recommended Action
-  resultAction.textContent = data.recommended_action;
-
-  // Switch views
-  resultsIdle.classList.add("hidden");
-  resultsContent.classList.remove("hidden");
-}
-
-/**
- * Handles form submission to the FastAPI backend.
- */
-async function handleSubmit(event) {
-  event.preventDefault();
-  hideAlert();
-
-  const message = messageInput.value.trim();
-  if (!message) {
-    showAlert("Please enter or paste the message content or email headers to analyze.", "error");
-    messageInput.focus();
-    return;
-  }
-
-  const payload = {
-    sender: senderInput.value.trim(),
-    subject: subjectInput.value.trim(),
-    message: message
-  };
-
-  // Set loading state
-  submitBtn.disabled = true;
-  submitSpinner.classList.remove("hidden");
-  submitIcon.classList.add("hidden");
-  submitLabel.textContent = "Agent Investigating with MCP Tools...";
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const responseData = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorMsg = responseData && responseData.detail
-        ? (typeof responseData.detail === "string" ? responseData.detail : JSON.stringify(responseData.detail))
-        : `Request failed with status ${response.status}`;
-      throw new Error(errorMsg);
+    if (elements.summary) {
+        elements.summary.textContent =
+            data.summary || "No summary available.";
     }
 
-    if (!responseData) {
-      throw new Error("Received empty response from server.");
+    if (elements.recommendedAction) {
+        elements.recommendedAction.textContent =
+            data.recommended_action ||
+            "Review the message carefully before taking action.";
     }
 
-    renderResults(responseData);
+    renderIndicators(data.indicators);
+    renderList(elements.reasons, data.reasons);
+    renderAnalysisSteps(data.analysis_steps);
+    renderToolEvidence(data.tool_evidence);
 
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    showAlert(`Analysis failed: ${error.message}`, "error");
-  } finally {
-    submitBtn.disabled = false;
-    submitSpinner.classList.add("hidden");
-    submitIcon.classList.remove("hidden");
-    submitLabel.textContent = "Analyze with Security Agent";
-  }
+    if (elements.results) {
+        elements.results.hidden = false;
+        elements.results.classList.add("visible");
+
+        elements.results.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
 }
 
-// Event Listeners
-document.addEventListener("DOMContentLoaded", () => {
-  // Check backend & MCP health
-  checkSystemHealth();
+async function analyzeMessage(event) {
+    event.preventDefault();
 
-  // Character counter
-  messageInput.addEventListener("input", updateCharCount);
+    hideError();
 
-  // Clear button
-  clearBtn.addEventListener("click", resetForm);
+    const sender = elements.sender?.value.trim() || "";
+    const subject = elements.subject?.value.trim() || "";
+    const message = elements.message?.value.trim() || "";
 
-  // Alert close button
-  alertCloseBtn.addEventListener("click", hideAlert);
+    if (!message) {
+        showError("Please enter a message to analyze.");
+        return;
+    }
 
-  // Preset buttons
-  document.querySelectorAll(".preset-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const presetKey = btn.getAttribute("data-preset");
-      loadPreset(presetKey);
-    });
-  });
+    setLoading(true);
 
-  // Form submit
-  analyzeForm.addEventListener("submit", handleSubmit);
+    try {
+        const response = await fetch(`${API_BASE}/analyze`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json"
+            },
+            body: JSON.stringify({
+                sender,
+                subject,
+                message
+            })
+        });
+
+        let data;
+
+        try {
+            data = await response.json();
+        } catch {
+            throw new Error(
+                `Server returned an invalid response (HTTP ${response.status}).`
+            );
+        }
+
+        if (!response.ok) {
+            const detail =
+                data?.detail ||
+                data?.message ||
+                `Analysis failed with HTTP ${response.status}.`;
+
+            throw new Error(detail);
+        }
+
+        renderResults(data);
+    } catch (error) {
+        console.error("Analysis error:", error);
+
+        showError(
+            error.message ||
+            "Unable to connect to the backend. Please try again."
+        );
+    } finally {
+        setLoading(false);
+    }
+}
+
+function resetForm() {
+    if (elements.form) {
+        elements.form.reset();
+    }
+
+    updateCharacterCount();
+    hideError();
+
+    if (elements.results) {
+        elements.results.hidden = true;
+        elements.results.classList.remove("visible");
+    }
+
+    if (elements.riskScore) {
+        elements.riskScore.textContent = "0";
+    }
+
+    if (elements.riskFill) {
+        elements.riskFill.style.width = "0%";
+    }
+
+    if (elements.indicators) {
+        elements.indicators.innerHTML = "";
+    }
+
+    if (elements.reasons) {
+        elements.reasons.innerHTML = "";
+    }
+
+    if (elements.analysisSteps) {
+        elements.analysisSteps.innerHTML = "";
+    }
+
+    if (elements.toolEvidence) {
+        elements.toolEvidence.innerHTML = "";
+    }
+}
+
+function loadPreset(preset) {
+    if (!preset) return;
+
+    if (elements.sender) {
+        elements.sender.value = preset.sender || "";
+    }
+
+    if (elements.subject) {
+        elements.subject.value = preset.subject || "";
+    }
+
+    if (elements.message) {
+        elements.message.value = preset.message || "";
+    }
+
+    updateCharacterCount();
+    hideError();
+
+    if (elements.results) {
+        elements.results.hidden = true;
+        elements.results.classList.remove("visible");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    if (elements.message) {
+        elements.message.addEventListener(
+            "input",
+            updateCharacterCount
+        );
+    }
+
+    if (elements.form) {
+        elements.form.addEventListener(
+            "submit",
+            analyzeMessage
+        );
+    }
+
+    if (elements.resetButton) {
+        elements.resetButton.addEventListener(
+            "click",
+            resetForm
+        );
+    }
+
+    updateCharacterCount();
+
+    await Promise.all([
+        checkBackendHealth(),
+        checkMCPStatus()
+    ]);
+
+    /*
+     * Preset buttons:
+     *
+     * If your HTML buttons contain a data-preset attribute,
+     * the corresponding preset can be loaded here.
+     */
+    document
+        .querySelectorAll("[data-preset]")
+        .forEach((button) => {
+            button.addEventListener("click", () => {
+                const presetName =
+                    button.dataset.preset;
+
+                const preset =
+                    window.PHISHGUARD_PRESETS?.[presetName];
+
+                if (preset) {
+                    loadPreset(preset);
+                }
+            });
+        });
 });
+```
