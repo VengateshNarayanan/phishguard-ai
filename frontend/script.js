@@ -1,4 +1,4 @@
-```javascript
+
 "use strict";
 
 /*
@@ -1253,4 +1253,4 @@ document.addEventListener(
     "DOMContentLoaded",
     initializeApplication
 );
-```
+
