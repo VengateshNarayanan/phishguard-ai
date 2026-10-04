@@ -1,4 +1,4 @@
-```javascript
+
 const API_BASE = "";
 
 const elements = {
@@ -515,4 +515,4 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         });
 });
-```
+
