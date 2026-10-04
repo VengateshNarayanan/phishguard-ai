@@ -1,146 +1,185 @@
 # 🛡️ PhishGuard AI
 
-**AI-powered phishing, scam, and social-engineering detection system built with FastAPI, Gemini, and MCP security tools.**
+> **AI-powered phishing, scam, and social-engineering detection system built with FastAPI, Google Gemini, and MCP security tools.**
 
-PhishGuard AI analyzes emails and messages to identify potential phishing and scam threats. It combines AI-based security analysis with specialized MCP tools for URL, domain, and email-header investigation.
+## 🌐 Live Demo
 
-> ⚠️ **Note:** PhishGuard AI is an AI-assisted security analysis tool and does not guarantee detection of every malicious message.
+### 🚀 [Open PhishGuard AI](https://phishguard-ai-xm8d.onrender.com/app/)
+
+
+
+> The application is deployed on Render and can be tested directly through the live dashboard.
 
 ---
 
-## 🚀 Features
+## 📌 Overview
 
-### 🤖 AI-Powered Threat Analysis
+PhishGuard AI is an AI-assisted cybersecurity application that analyzes emails and messages for **phishing, scams, and social-engineering attacks**.
 
-* Analyzes emails and messages using Google Gemini.
-* Generates a **0–100 risk score**.
-* Classifies threats as:
+The system combines **Google Gemini** for intelligent threat assessment with **MCP-based security tools** that investigate suspicious URLs, domains, and email headers.
+
+Instead of relying only on a single AI response, the system can collect additional security evidence and present an explainable risk assessment.
+
+---
+
+## 🚀 Key Features
+
+### 🤖 AI Threat Analysis
+
+* Google Gemini-powered message analysis
+* Risk score from **0–100**
+* Threat classification:
 
   * `SAFE`
   * `SUSPICIOUS`
   * `PHISHING`
   * `SCAM`
-* Assigns severity levels from `LOW` to `CRITICAL`.
-* Provides security reasoning, detected indicators, and recommended actions.
+* Severity levels:
+
+  * `LOW`
+  * `MEDIUM`
+  * `HIGH`
+  * `CRITICAL`
+* AI-generated security summary
+* Threat indicators
+* Detailed reasoning
+* Recommended security action
 
 ### 🔎 MCP Security Investigation
 
-PhishGuard AI uses MCP-based security tools to investigate suspicious content:
+PhishGuard AI includes specialized security tools for additional investigation.
 
-* **URL Analyzer**
+#### 🔗 URL Analyzer
 
-  * Detects suspicious URL structures
-  * Checks HTTPS usage
-  * Identifies IP-based URLs
-  * Detects suspicious ports and URL patterns
-  * Identifies phishing-related keywords
+Detects:
 
-* **Domain Analyzer**
+* HTTP vs HTTPS
+* IP-based URLs
+* Suspicious ports
+* Excessive subdomains
+* Suspicious URL length
+* `@` redirection patterns
+* Percent-encoding abuse
+* Phishing-related keywords
+* Suspicious URL structures
 
-  * Detects suspicious domains
-  * Identifies suspicious TLDs
-  * Detects punycode indicators
-  * Identifies potential typo-squatting patterns
-  * Analyzes suspicious domain structures
+#### 🌐 Domain Analyzer
 
-* **Email Header Analyzer**
+Analyzes:
 
-  * Checks `From` vs `Reply-To`
-  * Analyzes SPF results
-  * Analyzes DKIM results
-  * Analyzes DMARC results
-  * Identifies suspicious mail-routing indicators
+* Suspicious TLDs
+* IP-based domains
+* Excessive domain depth
+* Punycode indicators
+* Potential typo-squatting
+* Suspicious domain structures
+* Hyphen-based impersonation patterns
 
-### 🧠 Agentic Analysis
+#### 📧 Email Header Analyzer
 
-The security agent intelligently determines which investigation tools are relevant instead of executing every tool for every message.
+Checks:
 
-### 🖥️ Cybersecurity Dashboard
-
-* Responsive dark-themed interface
-* Risk score visualization
-* Threat classification
-* Severity indicators
-* Security investigation timeline
-* Tool evidence display
-* Recommended security actions
-
-### 🧪 Testing
-
-* Automated FastAPI tests using Pytest
-* Safe, suspicious, phishing, and scam test scenarios
-* MCP tool testing
-* Error and fallback handling
+* `From` vs `Reply-To` mismatch
+* SPF results
+* DKIM results
+* DMARC results
+* Return-Path discrepancies
+* Suspicious relay information
 
 ---
 
-## 🏗️ Architecture
+## 🧠 Agentic Security Analysis
+
+The Security Agent determines which security tools are relevant to the submitted message.
+
+For example:
 
 ```text
-                    ┌─────────────────────┐
-                    │   User / Email      │
-                    │      Message        │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      Frontend       │
-                    │ HTML / CSS / JS     │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      FastAPI        │
-                    │       Backend       │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │   Security Agent    │
-                    │      + Gemini       │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │    MCP Security     │
-                    │       Tools         │
-                    └──────────┬──────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             ▼                 ▼                 ▼
-      URL Analyzer      Domain Analyzer    Email Header
-                                            Analyzer
-             │                 │                 │
-             └─────────────────┼─────────────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  Security Evidence  │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │   Final AI Risk     │
-                    │    Assessment       │
-                    └─────────────────────┘
+Message
+   │
+   ▼
+Security Agent
+   │
+   ├── No URL → Skip URL analysis
+   │
+   ├── Suspicious URL → Analyze URL
+   │
+   ├── Suspicious domain → Analyze domain
+   │
+   └── Email headers → Analyze headers
+             │
+             ▼
+       Security Evidence
+             │
+             ▼
+        Gemini Analysis
+             │
+             ▼
+      Final Risk Assessment
+```
+
+This avoids unnecessary tool execution and provides additional evidence for the final assessment.
+
+---
+
+## 🏗️ System Architecture
+
+```text
+                         USER
+                           │
+                           ▼
+                 ┌──────────────────┐
+                 │   Web Dashboard   │
+                 │ HTML/CSS/JS       │
+                 └────────┬─────────┘
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │     FastAPI      │
+                 │     Backend      │
+                 └────────┬─────────┘
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │  Security Agent  │
+                 └────────┬─────────┘
+                          │
+                 ┌────────┴────────┐
+                 │                 │
+                 ▼                 ▼
+          Gemini Analysis     MCP Security Tools
+                                  │
+                    ┌─────────────┼─────────────┐
+                    ▼             ▼             ▼
+               URL Analyzer  Domain Analyzer  Header Analyzer
+                    │             │             │
+                    └─────────────┼─────────────┘
+                                  │
+                                  ▼
+                         Security Evidence
+                                  │
+                                  ▼
+                         Final AI Assessment
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-| Layer         | Technology              |
-| ------------- | ----------------------- |
-| Frontend      | HTML5, CSS3, JavaScript |
-| Backend       | Python, FastAPI         |
-| Validation    | Pydantic                |
-| AI            | Google Gemini           |
-| AI SDK        | `google-genai`          |
-| Agent Layer   | Python                  |
-| Tool Protocol | MCP                     |
-| MCP SDK       | Python MCP SDK          |
-| Testing       | Pytest                  |
-| Server        | Uvicorn                 |
+| Component     | Technology                   |
+| ------------- | ---------------------------- |
+| Frontend      | HTML5, CSS3, JavaScript      |
+| Backend       | Python, FastAPI              |
+| Validation    | Pydantic                     |
+| AI Model      | Google Gemini                |
+| AI SDK        | `google-genai`               |
+| Agent         | Python Security Agent        |
+| Tool Protocol | Model Context Protocol (MCP) |
+| MCP SDK       | Python MCP SDK               |
+| Testing       | Pytest                       |
+| Server        | Uvicorn                      |
+| Deployment    | Render                       |
+| Repository    | GitHub                       |
 
 ---
 
@@ -179,12 +218,12 @@ phishguard-ai/
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Local Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/phishguard-ai.git
+git clone https://github.com/VengateshNarayanan/phishguard-ai.git
 cd phishguard-ai
 ```
 
@@ -215,124 +254,116 @@ Add:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 DEMO_MODE=false
 ```
 
-For local testing without an API key:
+For local testing without Gemini:
 
 ```env
 DEMO_MODE=true
 ```
 
-Never commit your `.env` file.
+**Never commit your `.env` file to GitHub.**
 
 ---
 
-## ▶️ Running the Application
+## ▶️ Run Locally
 
-### Start the FastAPI backend
+Start the FastAPI backend:
 
 ```powershell
 cd backend
 uvicorn main:app --reload
 ```
 
-Backend:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger API documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Dashboard:
+Open:
 
 ```text
 http://127.0.0.1:8000/app/
 ```
 
-### MCP Server
-
-The MCP security server can be started independently according to the instructions in:
+Swagger documentation:
 
 ```text
-mcp_server/README.md
+http://127.0.0.1:8000/docs
 ```
 
 ---
 
-## 🔌 API
+## 🔌 API Endpoints
 
 ### `GET /`
 
-Returns basic API information.
+Returns API information and project metadata.
 
 ### `GET /health`
 
-Checks backend availability.
+Checks backend health.
 
 ### `GET /mcp/status`
 
-Returns the current MCP tool status.
+Returns MCP security-tool status.
 
 ### `POST /analyze`
 
 Analyzes an email or message.
 
-Example request:
+Example:
 
 ```json
 {
-  "sender": "security-alert@example.com",
-  "subject": "Urgent Account Verification",
-  "message": "Your account will be suspended. Verify your identity immediately."
+  "sender": "security-alert@instagram-verification.com",
+  "subject": "URGENT: Your Instagram Account Will Be Permanently Disabled",
+  "message": "We detected unusual activity on your Instagram account..."
 }
 ```
 
-Example response:
+---
 
-```json
-{
-  "risk_score": 94,
-  "classification": "PHISHING",
-  "severity": "CRITICAL",
-  "summary": "The message contains multiple phishing indicators.",
-  "reasons": [
-    "Urgency-based manipulation",
-    "Account suspension threat",
-    "Suspicious verification request"
-  ],
-  "indicators": [
-    "Social engineering",
-    "Credential harvesting"
-  ],
-  "recommended_action": "Do not click links or provide credentials.",
-  "tool_evidence": [],
-  "analysis_steps": [
-    "Initial message analysis completed",
-    "Threat indicators identified",
-    "Final risk assessment completed"
-  ]
-}
+## 🧪 Example Threat
+
+**Sender**
+
+```text
+security-alert@instagram-verification.com
+```
+
+**Subject**
+
+```text
+URGENT: Your Instagram Account Will Be Permanently Disabled
+```
+
+The system should identify indicators such as:
+
+```text
+• Urgency and time pressure
+• Brand impersonation
+• Account suspension threat
+• Suspicious verification URL
+• Social engineering
+• Potential credential harvesting
+```
+
+Expected classification:
+
+```text
+PHISHING
 ```
 
 ---
 
 ## 🧪 Testing
 
-Run the automated tests:
+Run the automated test suite:
 
 ```powershell
 cd backend
 pytest test_api.py -v
 ```
 
-The test suite covers:
+Tests cover:
 
 * API health
 * Input validation
@@ -344,70 +375,72 @@ The test suite covers:
 * Domain analysis
 * Email-header analysis
 * MCP functionality
-* Agent behavior
+* Security Agent behavior
 * Error handling
+* Phase 1 regression tests
 
 ---
 
 ## 🔐 Security Considerations
 
-PhishGuard AI follows several security principles:
+PhishGuard AI follows defensive security principles:
 
-* API keys are stored in environment variables.
+* API keys are stored using environment variables.
 * `.env` is excluded from Git.
 * User-provided content is treated as untrusted.
-* Submitted URLs are not automatically opened.
-* No arbitrary files are downloaded from submitted URLs.
+* Submitted URLs are analyzed syntactically and are not automatically opened.
+* External URLs are not automatically executed.
 * Frontend output is sanitized.
-* External threat intelligence is not fabricated.
-* The system does not automatically delete, report, or respond to emails.
+* Missing security information is not fabricated.
+* The system does not automatically send messages, delete emails, or take destructive actions.
 
 ---
 
-## 📊 Current Development Status
+## 📊 Development Progress
 
 ### Phase 1 — Core AI Analyzer ✅
 
 * FastAPI backend
 * Gemini integration
 * Pydantic validation
+* AI threat classification
 * Risk scoring
-* Threat classification
-* Cybersecurity dashboard
+* Security dashboard
 * Automated testing
 
 ### Phase 2 — MCP Security Agent ✅
 
-* Security agent
+* Security Agent
 * MCP security tools
-* URL analysis
-* Domain analysis
+* URL investigation
+* Domain investigation
 * Email-header analysis
 * Tool evidence
 * Investigation steps
 * MCP status monitoring
-* Agentic tool selection
+* Intelligent tool selection
+* Graceful fallback handling
 
-### Phase 3 — Future Improvements 🔮
+### Phase 3 — Future Possibilities 🔮
 
-Potential future extensions include:
+Potential extensions:
 
 * Gmail / Outlook integration
 * Real-time mailbox monitoring
 * External URL reputation services
 * WHOIS/domain intelligence
 * Real SPF/DKIM/DMARC validation
+* Threat-intelligence APIs
 * Human-approved incident reporting
 * Automated security workflows
-* Threat-intelligence APIs
 
 ---
 
 ## ⚠️ Disclaimer
 
-PhishGuard AI is intended for **educational, research, and defensive cybersecurity purposes**.
+PhishGuard AI is designed for **educational, research, and defensive cybersecurity purposes**.
 
-AI-generated security assessments may contain errors. Users should independently verify important security decisions before taking action.
+AI-generated security assessments may contain errors. Important security decisions should be independently verified.
 
 ---
 
@@ -417,15 +450,15 @@ AI-generated security assessments may contain errors. Users should independently
 
 B.Tech — Computer Science Engineering (IoT & Cybersecurity)
 
-Interested in:
+### Areas of Interest
 
 * Artificial Intelligence
 * AI Agents
-* MCP
+* Model Context Protocol (MCP)
 * Cybersecurity
 * Backend Development
 * Software Engineering
 
 ---
 
-⭐ If you find this project interesting, consider giving the repository a star.
+⭐ If you find PhishGuard AI useful or interesting, consider starring the repository.
