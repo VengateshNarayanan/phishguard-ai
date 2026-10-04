@@ -1,0 +1,61 @@
+{
+  "description": "Pre-configured test examples for evaluating PhishGuard AI across all 4 threat classifications.",
+  "examples": {
+    "safe": [
+      {
+        "name": "Team Status Meeting Sync",
+        "sender": "david.miller@company-internal.com",
+        "subject": "Sprint Retrospective Notes & Action Items",
+        "message": "Hi everyone,\n\nThanks for participating in today's sprint retrospective. I've updated the shared action item tracker in our internal repository. Please review the action items assigned to your squad before Monday's standup.\n\nCheers,\nDavid"
+      },
+      {
+        "name": "Customer Support Reply",
+        "sender": "support@github.com",
+        "subject": "Re: Ticket #482910 - Organization Seat Allocation",
+        "message": "Hello,\n\nWe have reviewed your organization settings and verified that the 5 additional seats have been allocated to your team account. You can manage member permissions under your Organization Settings tab.\n\nBest,\nGitHub Support"
+      }
+    ],
+    "suspicious": [
+      {
+        "name": "Unsolicited Shipping Status",
+        "sender": "notice@parcel-tracking-update88.com",
+        "subject": "Incomplete Delivery Address for Tracking #991048",
+        "message": "Notice: Your parcel could not be delivered on October 3rd due to missing street details. Please visit the tracking portal within 24 hours to confirm your address and pay a $1.50 redelivery fee: http://tracking-portal-reschedule.net/confirm"
+      },
+      {
+        "name": "Vendor Invoice Notification",
+        "sender": "accounting@supplier-quickbilling-system.net",
+        "subject": "Overdue Invoice Notice #INV-2024-8841",
+        "message": "Dear Accounts Payable,\n\nOur records show invoice INV-2024-8841 is 14 days overdue. Please review the attached breakdown and confirm settlement to avoid service interruption.\n\nThank you,\nSupplier Billing Department"
+      }
+    ],
+    "phishing": [
+      {
+        "name": "PayPal Account Suspension Threat",
+        "sender": "security-alert@service-paypal-verify.com",
+        "subject": "URGENT: Your account has been suspended!",
+        "message": "We have detected unauthorized activity on your PayPal account. Your account is suspended immediately. Click here to verify your account and confirm your identity: http://paypal-security-check.ru/login. Failure to act within 24 hours will result in permanent deletion."
+      },
+      {
+        "name": "Microsoft 365 Password Expiry",
+        "sender": "it-admin@msoffice365-security-portal.info",
+        "subject": "Action Required: Your password expires in 2 hours",
+        "message": "Dear Employee,\n\nYour corporate Microsoft 365 password will expire today at 5:00 PM. To keep your current password and avoid losing access to your inbox and cloud files, keep your password here: https://portal-office365-verify-credentials.com/auth\n\nCorporate IT Security Team"
+      }
+    ],
+    "scam": [
+      {
+        "name": "International Lottery Prize",
+        "sender": "barrister.kofi@un-reward-dept.org",
+        "subject": "CONGRATULATIONS: You won 5 million dollars lottery!",
+        "message": "Dear Beneficiary,\n\nYou have won 5 million dollars in the international lottery promo. To claim your prize, please send 500 dollars via wire transfer or cryptocurrency bitcoin for administrative processing fees.\n\nSend your identification and payment confirmation to proceed."
+      },
+      {
+        "name": "High-Yield Crypto Investment Opportunity",
+        "sender": "vip-advisory@binance-wealth-growth.biz",
+        "subject": "Guaranteed 400% Return on Bitcoin Investment in 48 Hours",
+        "message": "Exclusive Opportunity: Our automated AI arbitrage algorithm guarantees 400% profit within 48 hours with zero risk. Deposit a minimum of 0.05 BTC to wallet address bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh to activate your trading account immediately."
+      }
+    ]
+  }
+}

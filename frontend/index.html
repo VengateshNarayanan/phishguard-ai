@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhishGuard AI - MCP-Powered Phishing & Threat Intelligence System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">PhishGuard <span class="brand-badge">AI 2.0</span></div>
+          <div class="brand-subtitle">MCP-Powered Threat Intelligence & Security Agent</div>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <!-- Backend API Health Badge -->
+        <div class="status-indicator" id="api-status-badge" title="FastAPI Backend Status">
+          <span class="status-dot checking" id="status-dot"></span>
+          <span class="status-text" id="status-text">API: Checking...</span>
+        </div>
+
+        <!-- MCP Server Connection Badge -->
+        <div class="status-indicator" id="mcp-status-badge" title="Model Context Protocol Server Status">
+          <span class="status-dot online" id="mcp-status-dot"></span>
+          <span class="status-text" id="mcp-status-text">MCP: Checking...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+      
+      <!-- Top Alert Notification Area -->
+      <div id="alert-banner" class="alert-banner hidden">
+        <div class="alert-icon" id="alert-icon">⚠️</div>
+        <div class="alert-message" id="alert-message">Notice message goes here</div>
+        <button class="alert-close" id="alert-close-btn" aria-label="Dismiss">&times;</button>
+      </div>
+
+      <!-- Hero Description & Sample Presets -->
+      <section class="intro-section">
+        <p class="intro-text">
+          PhishGuard AI coordinates an intelligent Security Agent with Model Context Protocol (MCP) tools to gather empirical evidence from URLs, domains, and email headers before performing final AI risk synthesis.
+        </p>
+
+        <div class="presets-container">
+          <span class="presets-label">Load Test Example:</span>
+          <div class="preset-buttons">
+            <button type="button" class="preset-btn safe" data-preset="safe">
+              <span class="preset-dot"></span> Legitimate Email (SAFE)
+            </button>
+            <button type="button" class="preset-btn suspicious" data-preset="suspicious">
+              <span class="preset-dot"></span> Delivery Notice (SUSPICIOUS)
+            </button>
+            <button type="button" class="preset-btn phishing" data-preset="phishing">
+              <span class="preset-dot"></span> Bank Alert with URL (PHISHING)
+            </button>
+            <button type="button" class="preset-btn scam" data-preset="scam">
+              <span class="preset-dot"></span> Crypto Lottery (SCAM)
+            </button>
+            <button type="button" class="preset-btn headers" data-preset="headers">
+              <span class="preset-dot"></span> Header Spoofing (MCP HEADERS)
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grid: Left is Form, Right is Results -->
+      <div class="workspace-grid">
+        
+        <!-- Input Form Card -->
+        <div class="card form-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              Message Inspector
+            </h2>
+            <button type="button" id="clear-btn" class="text-btn">Clear All</button>
+          </div>
+
+          <form id="analyze-form">
+            <div class="form-group">
+              <label for="sender-input">Sender Details <span class="label-hint">(Email address or display name)</span></label>
+              <input 
+                type="text" 
+                id="sender-input" 
+                placeholder="e.g. security@paypal-verify-alert.com" 
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="subject-input">Subject Line</label>
+              <input 
+                type="text" 
+                id="subject-input" 
+                placeholder="e.g. URGENT: Action required on your account" 
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="form-group">
+              <div class="label-with-count">
+                <label for="message-input">Message Content / Email Headers <span class="required">*</span></label>
+                <span id="char-counter" class="char-count">0 characters</span>
+              </div>
+              <textarea 
+                id="message-input" 
+                rows="10" 
+                placeholder="Paste the raw body or RFC 822 email headers here..."
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="submit-btn" class="primary-btn">
+                <span class="btn-spinner hidden" id="submit-spinner"></span>
+                <span class="btn-icon" id="submit-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </span>
+                <span id="submit-label">Analyze with Security Agent</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card results-card" id="results-card">
+          
+          <!-- Idle Placeholder -->
+          <div id="results-idle" class="results-idle-state">
+            <div class="idle-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <circle cx="12" cy="11" r="3"/>
+                <path d="M12 17v.01"/>
+              </svg>
+            </div>
+            <h3 class="idle-title">Awaiting Agent Investigation</h3>
+            <p class="idle-desc">
+              Paste a suspicious message or select one of the test examples above. The Security Agent will intelligently select MCP tools, collect empirical signals, and render a final risk assessment.
+            </p>
+          </div>
+
+          <!-- Active Results Container -->
+          <div id="results-content" class="results-content hidden">
+            
+            <!-- Result Top Banner: Score & Classification -->
+            <div class="results-top-row">
+              <div class="risk-score-display">
+                <div class="score-circle" id="score-circle">
+                  <span class="score-number" id="result-score">0</span>
+                  <span class="score-total">/ 100</span>
+                </div>
+                <div class="score-meta">
+                  <span class="score-title">Risk Score</span>
+                  <span class="severity-pill" id="result-severity">LOW</span>
+                </div>
+              </div>
+
+              <div class="classification-box">
+                <span class="classification-label">Threat Classification</span>
+                <div class="classification-badge" id="result-classification">
+                  SAFE
+                </div>
+              </div>
+            </div>
+
+            <!-- Executive Summary -->
+            <div class="result-block">
+              <h4 class="block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                Executive Security Summary
+              </h4>
+              <p class="summary-text" id="result-summary">
+                Summary analysis text will be populated here.
+              </p>
+            </div>
+
+            <!-- Phase 2: Security Investigation (MCP Evidence & Steps) -->
+            <div class="result-block investigation-block" id="investigation-block">
+              <h4 class="block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+                Security Investigation (MCP Tool Evidence)
+              </h4>
+
+              <!-- High-Level Investigation Steps -->
+              <div class="investigation-steps-container">
+                <span class="sub-heading">Agent Investigation Steps:</span>
+                <ul class="investigation-steps-list" id="investigation-steps-list">
+                  <!-- Populated dynamically -->
+                </ul>
+              </div>
+
+              <!-- Structured Tool Evidence Cards -->
+              <div class="tool-evidence-container">
+                <span class="sub-heading">Empirical Tool Findings:</span>
+                <div class="tool-evidence-grid" id="tool-evidence-grid">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Detected Indicators -->
+            <div class="result-block">
+              <h4 class="block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Detected Threat Indicators
+              </h4>
+              <div class="indicators-container" id="result-indicators">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- Reasons / Evidence -->
+            <div class="result-block">
+              <h4 class="block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 11 12 14 22 4"/>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                Analysis & Justification
+              </h4>
+              <ul class="reasons-list" id="result-reasons">
+                <!-- Rendered dynamically -->
+              </ul>
+            </div>
+
+            <!-- Recommended Action -->
+            <div class="recommended-action-box" id="result-action-box">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <div class="action-body">
+                <span class="action-heading">Recommended Action</span>
+                <p class="action-text" id="result-action">
+                  Recommended action advice will appear here.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Legal / AI Safety Disclaimer -->
+      <footer class="app-footer">
+        <p>
+          <strong>Security Notice:</strong> PhishGuard AI provides an AI-assisted security assessment using MCP tools and structured threat models. It does not provide a guaranteed or infallible phishing determination. Always follow your organization's formal IT security guidelines and never click unverified links.
+        </p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
